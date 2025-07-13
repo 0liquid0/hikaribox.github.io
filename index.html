@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hikari Box - Lightbox Paintings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4facfe;
+            --secondary: #00f2fe;
+            --dark-bg: #0f172a;
+            --darker-bg: #1e293b;
+            --heading-font: 'Montserrat', sans-serif;
+            --body-font: 'Open Sans', sans-serif;
+        }
+        
+        body {
+            font-family: var(--body-font);
+            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--darker-bg) 100%);
+            color: #e2e2e2;
+            min-height: 100vh;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--heading-font);
+        }
+        
+        .glass-effect {
+            background: rgba(20, 30, 50, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+        
+        .glass-effect-light {
+            background: rgba(30, 40, 60, 0.7);
+        }
+        
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+        
+        .gallery-item:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .gallery-item .bw-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 1;
+            width: 100%;
+            height: auto;
+        }
+        
+        .gallery-item .color-image {
+            opacity: 0;
+            width: 100%;
+            height: auto;
+        }
+        
+        .gallery-item:hover .color-image,
+        .gallery-item.touched .color-image {
+            opacity: 1;
+        }
+        
+        .gallery-item:hover .bw-image,
+        .gallery-item.touched .bw-image {
+            opacity: 0;
+            transform: scale(1.05);
+        }
+        
+        /* Featured artwork container */
+        #featuredArtwork {
+            max-width: 100%;
+            display: inline-block;
+            position: relative;
+        }
+        
+        #featuredArtwork .bw-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 1;
+            width: 100%;
+            height: auto;
+            max-height: 80vh;
+        }
+        
+        #featuredArtwork .color-image {
+            opacity: 0;
+            width: 100%;
+            height: auto;
+            max-height: 80vh;
+        }
+        
+        #featuredArtwork:hover .color-image {
+            opacity: 1;
+        }
+        
+        #featuredArtwork:hover .bw-image {
+            opacity: 0;
+            transform: scale(1.05);
+        }
+        
+        .admin-panel {
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            margin-top: 2rem;
+        }
+        
+        .admin-panel.open {
+            max-height: 1000px;
+            padding: 30px 0;
+            opacity: 1;
+        }
+        
+        .upload-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-glow {
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .btn-glow::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(79, 172, 254, 0.3), transparent);
+            transition: 0.5s;
+            z-index: -1;
+        }
+        
+        .btn-glow:hover::before {
+            left: 100%;
+        }
+        
+        .title-gradient {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .floating {
+            animation: floating 6s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 1s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .ocean-accent {
+            background: linear-gradient(90deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.3) 50%, rgba(79, 172, 254, 0.1) 100%);
+        }
+        
+        .ocean-border {
+            border: 1px solid rgba(79, 172, 254, 0.3);
+        }
+        
+        .ocean-shadow {
+            box-shadow: 0 0 15px rgba(79, 172, 254, 0.3);
+        }
+        
+        .animate-spin-slow {
+            animation: spin 20s linear infinite;
+        }
+        
+        .animate-spin-slow-reverse {
+            animation: spin-reverse 25s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes spin-reverse {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
+        }
+        
+        /* Modal styles */
+        .artwork-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .artwork-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            position: relative;
+        }
+        
+        .modal-content img {
+            max-width: 90vw;
+            max-height: 80vh;
+            object-fit: contain;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .artwork-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 1rem;
+            color: white;
+            text-align: center;
+        }
+        
+        .order-btn {
+            display: inline-block;
+            background-color: #25D366;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            margin-top: 15px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .order-btn:hover {
+            background-color: #128C7E;
+            transform: scale(1.05);
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        /* Delete button */
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 0, 0, 0.7);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+        
+        .gallery-item:hover .delete-btn {
+            opacity: 1;
+        }
+        
+        /* Featured image selector */
+        .featured-selector {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 255, 0, 0.7);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+        
+        .gallery-item:hover .featured-selector {
+            opacity: 1;
+        }
+        
+        /* Accessibility improvements */
+        a:focus, button:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Floating Background Elements -->
+    <div class="fixed inset-0 overflow-hidden -z-10">
+        <div class="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-blue-900 opacity-10 filter blur-3xl animate-spin-slow"></div>
+        <div class="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full bg-blue-800 opacity-10 filter blur-3xl animate-spin-slow-reverse"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="glass-effect sticky top-0 z-40 ocean-border">
+        <div class="container mx-auto px-4 py-4 text-center">
+            <div>
+                <h1 id="siteTitle" class="text-5xl font-bold title-gradient">HIKARI BOX</h1>
+                <p id="siteTagline" class="text-xl text-gray-300 mt-2">Where Light Transforms Art</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative overflow-hidden py-20">
+        <div class="container mx-auto px-4 text-center relative z-10">
+            <div class="max-w-3xl mx-auto">
+                <h2 id="heroTitle" class="text-5xl md:text-6xl font-bold mb-6 text-white fade-in hero-title">Discover the <span class="title-gradient">Magic</span> of Light</h2>
+                <p id="heroSubtitle" class="text-xl md:text-2xl mb-8 text-gray-300 fade-in hero-subtitle" style="animation-delay: 0.2s;">Each painting transforms from monochrome to vibrant colors when illuminated</p>
+                <a href="#gallery" class="inline-block glass-effect text-white px-8 py-3.5 rounded-full font-semibold hover:shadow-xl transition-all duration-500 btn-glow ocean-border fade-in" style="animation-delay: 0.4s;">
+                    <span id="ctaText">Explore Gallery</span> <i class="fas fa-arrow-down ml-2"></i>
+                </a>
+            </div>
+            
+            <div class="mt-16 floating">
+                <div class="glass-effect rounded-2xl ocean-border ocean-shadow cursor-pointer inline-block">
+                    <div id="featuredArtwork" class="relative">
+                        <!-- Featured artwork will be loaded here -->
+                        <div class="p-8 glass-effect rounded-2xl inline-block ocean-border">
+                            <div class="loading-spinner mb-4"></div>
+                            <p class="text-gray-400">Loading featured artwork...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="admin-panel glass-effect ocean-accent">
+        <div class="container mx-auto px-4">
+            <div class="max-w-2xl mx-auto glass-effect-light p-8 rounded-2xl backdrop-blur-lg ocean-border">
+                <h3 class="text-2xl font-bold mb-6 text-white text-center">Upload New Artwork</h3>
+                
+                <form id="uploadForm" class="space-y-6">
+                    <div class="space-y-2">
+                        <label for="paintingTitle" class="block text-gray-300">Painting Title</label>
+                        <input type="text" id="paintingTitle" class="w-full px-4 py-3 rounded-lg glass-effect text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-400/30 focus:outline-none" required>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <label for="paintingDescription" class="block text-gray-300">Description</label>
+                        <textarea id="paintingDescription" rows="3" class="w-full px-4 py-3 rounded-lg glass-effect text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-400/30 focus:outline-none"></textarea>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-gray-300">Black & White Image</label>
+                            <div class="relative">
+                                <input type="file" id="bwImage" class="hidden" accept="image/*" required>
+                                <button type="button" onclick="document.getElementById('bwImage').click()" class="w-full glass-effect py-3 px-4 rounded-lg text-center cursor-pointer hover:bg-white/5 transition ocean-border">
+                                    <i class="fas fa-cloud-upload-alt text-2xl mb-2 text-blue-400"></i>
+                                    <p class="text-gray-300 text-sm">Click to upload</p>
+                                    <p class="text-xs text-gray-400 mt-1">Max 10MB (JPG, PNG)</p>
+                                </button>
+                            </div>
+                            <div class="mt-4 flex justify-center">
+                                <img id="bwPreview" src="" alt="B&W Preview" class="upload-preview hidden">
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-gray-300">Color Image</label>
+                            <div class="relative">
+                                <input type="file" id="colorImage" class="hidden" accept="image/*" required>
+                                <button type="button" onclick="document.getElementById('colorImage').click()" class="w-full glass-effect py-3 px-4 rounded-lg text-center cursor-pointer hover:bg-white/5 transition ocean-border">
+                                    <i class="fas fa-cloud-upload-alt text-2xl mb-2 text-blue-400"></i>
+                                    <p class="text-gray-300 text-sm">Click to upload</p>
+                                    <p class="text-xs text-gray-400 mt-1">Max 10MB (JPG, PNG)</p>
+                                </button>
+                            </div>
+                            <div class="mt-4 flex justify-center">
+                                <img id="colorPreview" src="" alt="Color Preview" class="upload-preview hidden">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between pt-4">
+                        <button type="reset" class="glass-effect text-white px-6 py-3 rounded-lg font-semibold hover:shadow-xl transition-all duration-500 btn-glow flex items-center justify-center space-x-2 ocean-border">
+                            <i class="fas fa-times text-gray-400"></i>
+                            <span>Reset Form</span>
+                        </button>
+                        <button type="submit" class="glass-effect text-white px-6 py-3 rounded-lg font-semibold hover:shadow-xl transition-all duration-500 btn-glow flex items-center justify-center space-x-2 ocean-border">
+                            <i class="fas fa-plus text-blue-400"></i>
+                            <span>Upload Artwork</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gallery Section -->
+    <section id="gallery" class="py-20 relative">
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/30 -z-10"></div>
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 id="galleryTitle" class="text-4xl font-bold text-white mb-4">Gallery</h2>
+                <div class="w-20 h-1 bg-gradient-to-r from-blue-500 to-cyan-500 mx-auto rounded-full"></div>
+            </div>
+            
+            <div id="galleryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                <!-- Gallery items will be loaded here -->
+                <div class="text-center col-span-full">
+                    <div class="p-8 glass-effect rounded-2xl inline-block ocean-border">
+                        <div class="loading-spinner mb-4"></div>
+                        <p class="text-gray-400">Loading artworks...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Artwork Modal -->
+    <div id="artworkModal" class="artwork-modal">
+        <div class="modal-content">
+            <button id="closeModal" class="close-modal" aria-label="Close modal">
+                <i class="fas fa-times"></i>
+            </button>
+            <img id="modalImage" src="" alt="Artwork in full view">
+            <div class="artwork-info">
+                <h3 id="modalTitle" class="text-xl font-bold"></h3>
+                <p id="modalDescription" class="mt-2 text-gray-200"></p>
+                <a id="orderWhatsApp" href="#" target="_blank" class="order-btn">
+                    <i class="fab fa-whatsapp"></i> Order Now
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer with Admin Login -->
+    <footer class="glass-effect py-8 text-center mt-20 ocean-border relative">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400 mb-4 md:mb-0">&copy; <span id="currentYear"></span> Hikari Box. All rights reserved.</p>
+            </div>
+        </div>
+        <!-- Moved Admin Login Button to Footer -->
+        <button id="adminToggle" class="absolute bottom-4 right-4 glass-effect text-white p-3 rounded-full hover:shadow-xl transition-all duration-500 btn-glow ocean-border" aria-label="Admin login">
+            <i class="fas fa-lock"></i>
+        </button>
+    </footer>
+
+    <script>
+        // Improved data structure
+        let paintings = [
+            {
+                id: 1,
+                title: "Cherry Blossom Night",
+                description: "A serene night scene with cherry blossoms illuminated by moonlight.",
+                bwImage: "https://images.unsplash.com/photo-1580130732478-4e339fb3796f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+                colorImage: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+                featured: true
+            },
+            {
+                id: 2,
+                title: "Ocean Depths",
+                description: "Exploring the mysterious beauty of the deep sea and its creatures.",
+                bwImage: "https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+                colorImage: "https://images.unsplash.com/photo-1505228395891-9a51e7e6bf9f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+                featured: false
+            }
+        ];
+
+        // Admin state
+        let isAdmin = false;
+
+        // DOM Elements
+        const adminToggle = document.getElementById('adminToggle');
+        const adminPanel = document.getElementById('adminPanel');
+        const galleryGrid = document.getElementById('galleryGrid');
+        const featuredArtwork = document.getElementById('featuredArtwork');
+        const uploadForm = document.getElementById('uploadForm');
+        const bwImageInput = document.getElementById('bwImage');
+        const colorImageInput = document.getElementById('colorImage');
+        const bwPreview = document.getElementById('bwPreview');
+        const colorPreview = document.getElementById('colorPreview');
+        const currentYear = document.getElementById('currentYear');
+        const artworkModal = document.getElementById('artworkModal');
+        const modalImage = document.getElementById('modalImage');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDescription = document.getElementById('modalDescription');
+        const orderWhatsApp = document.getElementById('orderWhatsApp');
+        const closeModal = document.getElementById('closeModal');
+
+        // Initialize the gallery with staggered animations
+        function initGallery() {
+            galleryGrid.innerHTML = '';
+            
+            if (paintings.length === 0) {
+                galleryGrid.innerHTML = `
+                    <div class="text-center col-span-full">
+                        <div class="p-8 glass-effect rounded-2xl inline-block ocean-border">
+                            <i class="fas fa-image text-4xl text-blue-400 mb-4"></i>
+                            <p class="text-gray-400">No artworks yet. Check back soon!</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Update featured artwork first
+            updateFeaturedArtwork();
+            
+            paintings.forEach((painting, index) => {
+                const galleryItem = document.createElement('div');
+                galleryItem.className = 'gallery-item';
+                galleryItem.dataset.id = painting.id;
+                galleryItem.style.opacity = '0';
+                galleryItem.style.transform = 'translateY(20px)';
+                galleryItem.style.animation = `fadeIn 0.6s ease-out forwards`;
+                galleryItem.style.animationDelay = `${index * 0.1}s`;
+                
+                galleryItem.innerHTML = `
+                    <div class="relative overflow-hidden rounded-xl shadow-lg cursor-pointer">
+                        <img src="${painting.colorImage}" alt="${painting.title}" class="color-image">
+                        <img src="${painting.bwImage}" alt="${painting.title} (B&W)" class="bw-image absolute top-0 left-0">
+                        <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+                            <h3 class="text-lg font-semibold text-white">${painting.title}</h3>
+                        </div>
+                        ${isAdmin ? `
+                        <button class="delete-btn" data-id="${painting.id}" aria-label="Delete artwork">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="featured-selector" data-id="${painting.id}" aria-label="Set as featured">
+                            <i class="fas fa-star"></i>
+                        </button>
+                        ` : ''}
+                    </div>
+                `;
+                
+                // Click event for opening modal
+                galleryItem.addEventListener('click', (e) => {
+                    // Don't open modal if clicking admin buttons
+                    if (!e.target.closest('.delete-btn') && !e.target.closest('.featured-selector')) {
+                        openArtworkModal(painting);
+                    }
+                });
+                
+                // Touch support for mobile
+                galleryItem.addEventListener('touchstart', function() {
+                    this.classList.add('touched');
+                });
+                
+                galleryItem.addEventListener('touchend', function() {
+                    setTimeout(() => this.classList.remove('touched'), 500);
+                });
+                
+                galleryGrid.appendChild(galleryItem);
+            });
+
+            // Add event listeners for delete buttons
+            if (isAdmin) {
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteArtwork(btn.dataset.id);
+                    });
+                });
+
+                document.querySelectorAll('.featured-selector').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        setFeaturedArtwork(btn.dataset.id);
+                    });
+                });
+            }
+        }
+
+        // Update featured artwork display
+        function updateFeaturedArtwork() {
+            const featured = paintings.find(p => p.featured) || paintings[0];
+            if (featured) {
+                featuredArtwork.innerHTML = `
+                    <img src="${featured.colorImage}" alt="${featured.title}" class="color-image">
+                    <img src="${featured.bwImage}" alt="${featured.title} (B&W)" class="bw-image absolute top-0 left-0">
+                    <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+                        <h3 class="text-lg font-semibold text-white">${featured.title}</h3>
+                    </div>
+                `;
+                
+                // Add click event to featured artwork
+                featuredArtwork.addEventListener('click', () => {
+                    openArtworkModal(featured);
+                });
+            }
+        }
+
+        // Set featured artwork
+        function setFeaturedArtwork(id) {
+            paintings.forEach(p => p.featured = false);
+            const artwork = paintings.find(p => p.id == id);
+            if (artwork) {
+                artwork.featured = true;
+                updateFeaturedArtwork();
+                showAlert('Featured artwork updated!', 'success');
+            }
+        }
+
+        // Delete artwork
+        function deleteArtwork(id) {
+            if (confirm('Are you sure you want to delete this artwork?')) {
+                paintings = paintings.filter(p => p.id != id);
+                initGallery();
+                showAlert('Artwork deleted', 'success');
+            }
+        }
+
+        // Open artwork modal with details
+        function openArtworkModal(painting) {
+            modalImage.src = painting.colorImage;
+            modalImage.alt = painting.title;
+            modalTitle.textContent = painting.title;
+            modalDescription.textContent = painting.description || '';
+            
+            // Set WhatsApp link with image and message
+            const whatsappMessage = `Hi, I'm interested in ordering "${painting.title}". Here's the image: ${painting.colorImage}`;
+            const encodedMessage = encodeURIComponent(whatsappMessage);
+            orderWhatsApp.href = `https://wa.me/963938905435?text=${encodedMessage}`;
+            
+            artworkModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close artwork modal
+        function closeArtworkModal() {
+            artworkModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Add a new painting with validation
+        function addPainting(title, description, bwImage, colorImage) {
+            // Basic validation
+            if (!title || !bwImage || !colorImage) {
+                showAlert('Please provide at least a title and both images', 'error');
+                return;
+            }
+            
+            // Check image sizes (10MB max)
+            if (bwImage.length > 10 * 1024 * 1024 || colorImage.length > 10 * 1024 * 1024) {
+                showAlert('Images should be less than 10MB each', 'error');
+                return;
+            }
+            
+            const newId = paintings.length > 0 ? Math.max(...paintings.map(p => p.id)) + 1 : 1;
+            
+            const newPainting = {
+                id: newId,
+                title,
+                description,
+                bwImage,
+                colorImage,
+                featured: paintings.length === 0 // Make first artwork featured by default
+            };
+            
+            paintings.push(newPainting);
+            initGallery();
+            
+            // Show success message
+            showAlert('Artwork added successfully!', 'success');
+            
+            // Scroll to the gallery to see the new addition
+            setTimeout(() => {
+                document.getElementById('gallery').scrollIntoView({ behavior: 'smooth' });
+            }, 500);
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'info') {
+            const alert = document.createElement('div');
+            alert.className = `fixed top-6 left-1/2 transform -translate-x-1/2 glass-effect px-6 py-3 rounded-lg flex items-center space-x-2 z-50 ${
+                type === 'error' ? 'text-red-300 border-red-400' : 
+                type === 'success' ? 'text-green-300 border-green-400' : 'text-blue-300 border-blue-400'
+            } border`;
+            
+            alert.innerHTML = `
+                <i class="fas ${
+                    type === 'error' ? 'fa-exclamation-circle' : 
+                    type === 'success' ? 'fa-check-circle' : 'fa-info-circle'
+                }"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 300);
+            }, 3000);
+        }
+
+        // Toggle admin panel with animation
+        function toggleAdminPanel() {
+            if (!isAdmin) {
+                const password = prompt('Enter admin password:');
+                if (password === "admin123") {
+                    isAdmin = true;
+                    adminToggle.innerHTML = '<i class="fas fa-unlock"></i>';
+                    adminPanel.classList.add('open');
+                    
+                    // Reinitialize gallery to show admin controls
+                    initGallery();
+                    
+                    // Scroll to admin panel if it's not visible
+                    setTimeout(() => {
+                        adminPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 300);
+                } else if (password) {
+                    showAlert('Incorrect password', 'error');
+                }
+            } else {
+                isAdmin = false;
+                adminToggle.innerHTML = '<i class="fas fa-lock"></i>';
+                adminPanel.classList.remove('open');
+                
+                // Reinitialize gallery to hide admin controls
+                initGallery();
+            }
+        }
+
+        // Preview image before upload with size validation
+        function previewImage(input, previewElement) {
+            if (input.files && input.files[0]) {
+                // Check file size (10MB max)
+                if (input.files[0].size > 10 * 1024 * 1024) {
+                    showAlert('Image must be less than 10MB', 'error');
+                    input.value = '';
+                    return;
+                }
+                
+                // Check file type
+                const validTypes = ['image/jpeg', 'image/png'];
+                if (!validTypes.includes(input.files[0].type)) {
+                    showAlert('Only JPG and PNG images are allowed', 'error');
+                    input.value = '';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    previewElement.src = e.target.result;
+                    previewElement.classList.remove('hidden');
+                    previewElement.classList.add('fade-in');
+                }
+                
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Set current year in footer
+        function setCurrentYear() {
+            currentYear.textContent = new Date().getFullYear();
+        }
+
+        // Event Listeners
+        adminToggle.addEventListener('click', toggleAdminPanel);
+        closeModal.addEventListener('click', closeArtworkModal);
+
+        // File input change listeners
+        bwImageInput.addEventListener('change', function() {
+            previewImage(this, bwPreview);
+        });
+
+        colorImageInput.addEventListener('change', function() {
+            previewImage(this, colorPreview);
+        });
+
+        uploadForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('paintingTitle').value;
+            const description = document.getElementById('paintingDescription').value;
+            
+            // Get the image data URLs from the previews
+            const bwImage = bwPreview.src;
+            const colorImage = colorPreview.src;
+            
+            if (bwImage && colorImage) {
+                addPainting(title, description, bwImage, colorImage);
+                
+                // Reset form
+                this.reset();
+                bwPreview.src = '';
+                colorPreview.src = '';
+                bwPreview.classList.add('hidden');
+                colorPreview.classList.add('hidden');
+                bwPreview.classList.remove('fade-in');
+                colorPreview.classList.remove('fade-in');
+            } else {
+                showAlert('Please upload both images', 'error');
+            }
+        });
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            setCurrentYear();
+            
+            // Initialize gallery after a small delay for better animation
+            setTimeout(initGallery, 300);
+        });
+    </script>
+</body>
+</html>
