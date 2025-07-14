@@ -532,108 +532,127 @@
     </footer>
 
     <script>
-       // ===== SAFE UPLOAD CONFIG =====
-const REPO = "0liquid0/hikaribox.github.io"; // 🚨 Replace with your repo path
+      // ===== SAFE UPLOAD CONFIG =====
+const REPO = "0liquid0/hikaribox.github.io";
 
 // ===== CORE FUNCTIONS =====
 function toBase64(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-  });
+    return new Promise((resolve, reject) => {
+        // Validate file type
+        if (!file.type.match('image.*')) {
+            return reject(new Error('Only image files are allowed'));
+        }
+        
+        // Validate file size (e.g., 5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            return reject(new Error('File size must be less than 5MB'));
+        }
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
 }
 
 async function triggerWorkflow(title, description, bwFile, colorFile) {
-  const timestamp = Date.now();
-  const [bwBase64, colorBase64] = await Promise.all([
-    toBase64(bwFile),
-    toBase64(colorFile)
-  ]);
+    // Input validation
+    if (!title || !description || !bwFile || !colorFile) {
+        throw new Error('All fields are required');
+    }
 
-  try {
-    const response = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
-      method: "POST",
-      headers: {
-        "Accept": "application/vnd.github.everest-preview+json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        event_type: "upload_artwork",
-        client_payload: {
-          title,
-          description,
-          timestamp,
-          bw_image: bwBase64.split(',')[1], // Remove Base64 header
-          color_image: colorBase64.split(',')[1]
+    const timestamp = Date.now();
+    const [bwBase64, colorBase64] = await Promise.all([
+        toBase64(bwFile),
+        toBase64(colorFile)
+    ]);
+
+    try {
+        // In a real implementation, you should:
+        // 1. Call your own backend endpoint that has the token securely stored
+        // 2. Let the backend communicate with GitHub API
+        const response = await fetch('/api/upload-artwork', { // This should be your own endpoint
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                title,
+                description,
+                timestamp,
+                bw_image: bwBase64.split(',')[1],
+                color_image: colorBase64.split(',')[1]
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Upload failed");
         }
-      })
-    });
-
-    if (!response.ok) throw new Error("GitHub API error");
-    
-    return {
-      bwUrl: `https://raw.githubusercontent.com/${REPO}/main/images/${timestamp}_bw.jpg`,
-      colorUrl: `https://raw.githubusercontent.com/${REPO}/main/images/${timestamp}_color.jpg`
-    };
-  } catch (error) {
-    console.error("Workflow trigger failed:", error);
-    throw error;
-  }
+        
+        const data = await response.json();
+        return {
+            bwUrl: data.bwUrl,
+            colorUrl: data.colorUrl
+        };
+    } catch (error) {
+        console.error("Upload failed:", error);
+        throw error;
+    }
 }
 
 // ===== UPDATED UPLOAD HANDLER =====
-document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  
-  const title = document.getElementById('paintingTitle').value;
-  const description = document.getElementById('paintingDescription').value;
-  const bwFile = document.getElementById('bwImage').files[0];
-  const colorFile = document.getElementById('colorImage').files[0];
+document.getElementById('uploadForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const title = document.getElementById('paintingTitle').value.trim();
+    const description = document.getElementById('paintingDescription').value.trim();
+    const bwFile = document.getElementById('bwImage').files[0];
+    const colorFile = document.getElementById('colorImage').files[0];
 
-  try {
-    // Show loading state
     const submitBtn = this.querySelector('button[type="submit"]');
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-    submitBtn.disabled = true;
+    try {
+        // Validate inputs
+        if (!title || title.length > 100) {
+            throw new Error('Title must be between 1-100 characters');
+        }
+        if (!description || description.length > 500) {
+            throw new Error('Description must be between 1-500 characters');
+        }
+        if (!bwFile || !colorFile) {
+            throw new Error('Both images are required');
+        }
 
-    // Trigger workflow
-    const { bwUrl, colorUrl } = await triggerWorkflow(title, description, bwFile, colorFile);
+        // Show loading state
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+        submitBtn.disabled = true;
 
-    // Add to local gallery
-    paintings.push({
-      id: Date.now(),
-      title,
-      description,
-      bwImage: bwUrl,
-      colorImage: colorUrl,
-      featured: false
-    });
+        // Trigger workflow
+        const { bwUrl, colorUrl } = await triggerWorkflow(title, description, bwFile, colorFile);
 
-    showAlert("Artwork saved permanently!", "success");
-    initGallery();
-    this.reset();
-    document.getElementById('bwPreview').classList.add('hidden');
-    document.getElementById('colorPreview').classList.add('hidden');
+        // Add to local gallery
+        paintings.push({
+            id: Date.now(),
+            title,
+            description,
+            bwImage: bwUrl,
+            colorImage: colorUrl,
+            featured: false
+        });
 
-  } catch (error) {
-    showAlert("Upload failed. Please try again.", "error");
-  } finally {
-    // Reset button
-    const submitBtn = document.querySelector('button[type="submit"]');
-    submitBtn.innerHTML = '<i class="fas fa-plus"></i> Upload Artwork';
-    submitBtn.disabled = false;
-  }
-});
+        showAlert("Artwork saved successfully!", "success");
+        initGallery();
+        this.reset();
+        document.getElementById('bwPreview')?.classList.add('hidden');
+        document.getElementById('colorPreview')?.classList.add('hidden');
 
-// ===== KEEP YOUR EXISTING FUNCTIONS BELOW =====
-// initGallery(), showAlert(), toggleAdminPanel() etc. should remain unchanged
-// ... (paste all your other original functions here)
-
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-  initGallery();
-  document.getElementById('currentYear').textContent = new Date().getFullYear();
+    } catch (error) {
+        showAlert(error.message || "Upload failed. Please try again.", "error");
+    } finally {
+        // Reset button
+        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Upload Artwork';
+        submitBtn.disabled = false;
+    }
 });
     </script>
 </body>
