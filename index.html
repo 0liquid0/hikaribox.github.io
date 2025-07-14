@@ -532,7 +532,7 @@
     </footer>
 
     <script>
-        // ===== GALLERY DATA =====
+ // ===== GALLERY DATA =====
         let paintings = [
             {
                 id: 1,
@@ -549,41 +549,38 @@
                 bwImage: "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
                 colorImage: "https://images.unsplash.com/photo-1519046904884-53103b34b206?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
                 featured: false
-            },
-            {
-                id: 3,
-                title: "Mountain Reflection",
-                description: "Snow-capped mountains perfectly reflected in a still alpine lake.",
-                bwImage: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-                colorImage: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-                featured: false
             }
         ];
 
         // ===== GLOBAL VARIABLES =====
         let isAdmin = false;
         const currentYear = new Date().getFullYear();
-        document.getElementById('currentYear').textContent = currentYear;
-
+        
         // ===== ADMIN PANEL FUNCTIONALITY =====
         function toggleAdminPanel() {
             isAdmin = !isAdmin;
             const adminPanel = document.getElementById('adminPanel');
             const adminToggle = document.getElementById('adminToggle');
             
-            adminPanel.classList.toggle('open');
-            
-            // Change the lock icon based on admin state
-            if (isAdmin) {
-                adminToggle.innerHTML = '<i class="fas fa-unlock"></i>';
-                adminToggle.title = "Logout";
-            } else {
-                adminToggle.innerHTML = '<i class="fas fa-lock"></i>';
-                adminToggle.title = "Login";
+            if (adminPanel) {
+                adminPanel.classList.toggle('open');
             }
             
-            // Show a notification
-            showAlert(isAdmin ? "Admin mode activated" : "Admin mode deactivated", isAdmin ? "success" : "info");
+            if (adminToggle) {
+                // Change the lock icon based on admin state
+                if (isAdmin) {
+                    adminToggle.innerHTML = '<i class="fas fa-unlock"></i>';
+                    adminToggle.title = "Logout";
+                    showAlert("Admin mode activated", "success");
+                } else {
+                    adminToggle.innerHTML = '<i class="fas fa-lock"></i>';
+                    adminToggle.title = "Login";
+                    showAlert("Admin mode deactivated", "info");
+                }
+            }
+            
+            // Refresh gallery to show/hide admin controls
+            initGallery();
         }
 
         // ===== GALLERY FUNCTIONS =====
@@ -591,8 +588,11 @@
             const galleryGrid = document.getElementById('galleryGrid');
             const featuredArtwork = document.getElementById('featuredArtwork');
             
+            // Set current year in footer
+            document.getElementById('currentYear').textContent = currentYear;
+            
             // Clear existing content
-            galleryGrid.innerHTML = '';
+            if (galleryGrid) galleryGrid.innerHTML = '';
             
             // Find featured artwork
             const featured = paintings.find(p => p.featured) || paintings[0];
@@ -610,49 +610,51 @@
             }
             
             // Populate gallery grid
-            paintings.forEach(painting => {
-                const galleryItem = document.createElement('div');
-                galleryItem.className = 'gallery-item';
-                galleryItem.innerHTML = `
-                    <div class="relative overflow-hidden rounded-xl aspect-square">
-                        <img class="bw-image" src="${painting.bwImage}" alt="${painting.title} (B&W)">
-                        <img class="color-image" src="${painting.colorImage}" alt="${painting.title} (Color)">
-                        ${isAdmin ? `
-                            <button class="delete-btn" data-id="${painting.id}" aria-label="Delete artwork">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            <button class="featured-selector" data-id="${painting.id}" aria-label="Set as featured">
-                                <i class="fas ${painting.featured ? 'fa-star' : 'fa-star-o'}"></i>
-                            </button>
-                        ` : ''}
-                    </div>
-                    <div class="mt-4">
-                        <h3 class="text-lg font-semibold">${painting.title}</h3>
-                        <p class="text-gray-400 text-sm mt-1">${painting.description}</p>
-                    </div>
-                `;
-                
-                // Add click event to open modal
-                galleryItem.addEventListener('click', () => openArtworkModal(painting));
-                
-                galleryGrid.appendChild(galleryItem);
-            });
-            
-            // Add event listeners for admin buttons
-            if (isAdmin) {
-                document.querySelectorAll('.delete-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        deleteArtwork(btn.dataset.id);
-                    });
+            if (galleryGrid) {
+                paintings.forEach(painting => {
+                    const galleryItem = document.createElement('div');
+                    galleryItem.className = 'gallery-item';
+                    galleryItem.innerHTML = `
+                        <div class="relative overflow-hidden rounded-xl aspect-square">
+                            <img class="bw-image" src="${painting.bwImage}" alt="${painting.title} (B&W)">
+                            <img class="color-image" src="${painting.colorImage}" alt="${painting.title} (Color)">
+                            ${isAdmin ? `
+                                <button class="delete-btn" data-id="${painting.id}" aria-label="Delete artwork">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <button class="featured-selector" data-id="${painting.id}" aria-label="Set as featured">
+                                    <i class="fas ${painting.featured ? 'fa-star' : 'fa-star-o'}"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                        <div class="mt-4">
+                            <h3 class="text-lg font-semibold">${painting.title}</h3>
+                            <p class="text-gray-400 text-sm mt-1">${painting.description}</p>
+                        </div>
+                    `;
+                    
+                    // Add click event to open modal
+                    galleryItem.addEventListener('click', () => openArtworkModal(painting));
+                    
+                    galleryGrid.appendChild(galleryItem);
                 });
                 
-                document.querySelectorAll('.featured-selector').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        setFeaturedArtwork(btn.dataset.id);
+                // Add event listeners for admin buttons
+                if (isAdmin) {
+                    document.querySelectorAll('.delete-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            deleteArtwork(btn.dataset.id);
+                        });
                     });
-                });
+                    
+                    document.querySelectorAll('.featured-selector').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            setFeaturedArtwork(btn.dataset.id);
+                        });
+                    });
+                }
             }
         }
 
@@ -667,140 +669,6 @@
             initGallery();
             showAlert("Featured artwork updated", "success");
         }
-
-        // ===== IMAGE UPLOAD FUNCTIONS =====
-        function setupImagePreviews() {
-            // BW Image Preview
-            const bwImageInput = document.getElementById('bwImage');
-            if (bwImageInput) {
-                bwImageInput.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    const preview = document.getElementById('bwPreview');
-                    if (file && preview) {
-                        const reader = new FileReader();
-                        reader.onload = function(event) {
-                            preview.src = event.target.result;
-                            preview.classList.remove('hidden');
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-            }
-            
-            // Color Image Preview
-            const colorImageInput = document.getElementById('colorImage');
-            if (colorImageInput) {
-                colorImageInput.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    const preview = document.getElementById('colorPreview');
-                    if (file && preview) {
-                        const reader = new FileReader();
-                        reader.onload = function(event) {
-                            preview.src = event.target.result;
-                            preview.classList.remove('hidden');
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-            }
-        }
-
-        function toBase64(file) {
-            return new Promise((resolve, reject) => {
-                // Validate file type
-                if (!file.type.match('image.*')) {
-                    return reject(new Error('Only image files are allowed'));
-                }
-                
-                // Validate file size (e.g., 5MB max)
-                if (file.size > 5 * 1024 * 1024) {
-                    return reject(new Error('File size must be less than 5MB'));
-                }
-
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
-            });
-        }
-
-        async function triggerWorkflow(title, description, bwFile, colorFile) {
-            // Input validation
-            if (!title || !description || !bwFile || !colorFile) {
-                throw new Error('All fields are required');
-            }
-
-            const timestamp = Date.now();
-            const [bwBase64, colorBase64] = await Promise.all([
-                toBase64(bwFile),
-                toBase64(colorFile)
-            ]);
-
-            // In a real implementation, you would send this to your backend
-            // For demo purposes, we'll simulate a successful upload
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve({
-                        bwUrl: URL.createObjectURL(bwFile),
-                        colorUrl: URL.createObjectURL(colorFile)
-                    });
-                }, 1500);
-            });
-        }
-
-        // ===== UPLOAD FORM HANDLER =====
-        document.getElementById('uploadForm')?.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const title = document.getElementById('paintingTitle').value.trim();
-            const description = document.getElementById('paintingDescription').value.trim();
-            const bwFile = document.getElementById('bwImage').files[0];
-            const colorFile = document.getElementById('colorImage').files[0];
-
-            const submitBtn = this.querySelector('button[type="submit"]');
-            try {
-                // Validate inputs
-                if (!title || title.length > 100) {
-                    throw new Error('Title must be between 1-100 characters');
-                }
-                if (!description || description.length > 500) {
-                    throw new Error('Description must be between 1-500 characters');
-                }
-                if (!bwFile || !colorFile) {
-                    throw new Error('Both images are required');
-                }
-
-                // Show loading state
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-                submitBtn.disabled = true;
-
-                // Trigger workflow
-                const { bwUrl, colorUrl } = await triggerWorkflow(title, description, bwFile, colorFile);
-
-                // Add to local gallery
-                paintings.push({
-                    id: Date.now(),
-                    title,
-                    description,
-                    bwImage: bwUrl,
-                    colorImage: colorUrl,
-                    featured: false
-                });
-
-                showAlert("Artwork saved successfully!", "success");
-                initGallery();
-                this.reset();
-                document.getElementById('bwPreview')?.classList.add('hidden');
-                document.getElementById('colorPreview')?.classList.add('hidden');
-
-            } catch (error) {
-                showAlert(error.message || "Upload failed. Please try again.", "error");
-            } finally {
-                // Reset button
-                submitBtn.innerHTML = '<i class="fas fa-plus"></i> Upload Artwork';
-                submitBtn.disabled = false;
-            }
-        });
 
         // ===== MODAL FUNCTIONS =====
         function openArtworkModal(painting) {
@@ -858,9 +726,6 @@
                 adminToggle.addEventListener('click', toggleAdminPanel);
             }
             
-            // Setup image previews for upload form
-            setupImagePreviews();
-            
             // Setup modal close button
             const closeModal = document.getElementById('closeModal');
             if (closeModal) {
@@ -873,6 +738,40 @@
                 artworkModal.addEventListener('click', function(e) {
                     if (e.target === artworkModal) {
                         closeArtworkModal();
+                    }
+                });
+            }
+            
+            // Image upload preview setup
+            const bwImageInput = document.getElementById('bwImage');
+            const colorImageInput = document.getElementById('colorImage');
+            const bwPreview = document.getElementById('bwPreview');
+            const colorPreview = document.getElementById('colorPreview');
+            
+            if (bwImageInput && bwPreview) {
+                bwImageInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            bwPreview.src = event.target.result;
+                            bwPreview.classList.remove('hidden');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+            
+            if (colorImageInput && colorPreview) {
+                colorImageInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            colorPreview.src = event.target.result;
+                            colorPreview.classList.remove('hidden');
+                        };
+                        reader.readAsDataURL(file);
                     }
                 });
             }
