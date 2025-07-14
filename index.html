@@ -892,3 +892,55 @@
     </script>
 </body>
 </html>
+// Add this at the top of your <script> section
+const GITHUB_TOKEN = "YOUR_TOKEN_HERE"; // ← Paste token here
+const REPO = "yourusername/yourusername.github.io"; // ← Your repo
+
+async function uploadToGitHub(file, path) {
+  const response = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+    method: "PUT",
+    headers: {
+      "Authorization": `token ${GITHUB_TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: "Upload image via HikariBox",
+      content: file.split(',')[1] // Remove Base64 header
+    })
+  });
+  return response.json();
+}
+
+// Modify your existing uploadForm event listener
+uploadForm.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  const title = document.getElementById('paintingTitle').value;
+  const bwImage = await toBase64(bwImageInput.files[0]);
+  const colorImage = await toBase64(colorImageInput.files[0]);
+
+  // Upload images to GitHub
+  await uploadToGitHub(bwImage, `images/${title}_bw.jpg`);
+  await uploadToGitHub(colorImage, `images/${title}_color.jpg`);
+
+  // Update paintings array with GitHub URLs
+  paintings.push({
+    id: Date.now(),
+    title,
+    description: document.getElementById('paintingDescription').value,
+    bwImage: `https://raw.githubusercontent.com/${REPO}/main/images/${title}_bw.jpg`,
+    colorImage: `https://raw.githubusercontent.com/${REPO}/main/images/${title}_color.jpg`,
+    featured: false
+  });
+
+  initGallery(); // Refresh display
+});
+
+// Helper function to convert files to Base64
+function toBase64(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+  });
+}
