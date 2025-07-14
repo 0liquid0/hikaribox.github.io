@@ -558,390 +558,310 @@
     </footer>
 
     <script>
-        // ===== CONFIGURATION =====
-        const ADMIN_PASSWORD = "admin123"; // Changed to admin123 as requested
-        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        // ===== CONFIGURATION ===== (REPLACE THESE VALUES!)
+const GITHUB_REPO = "0liquid0/hikari-box";  // ← Your GitHub repo (format: username/repo-name)
+const GITHUB_TOKEN = "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";     // ← Your GitHub personal access token
+const DEFAULT_PAINTINGS = [
+  {
+    id: 1,
+    title: "Cherry Blossom Night",
+    description: "A serene night scene with cherry blossoms illuminated by moonlight.",
+    bwImage: "https://images.unsplash.com/photo-1580130732478-4e339fb3796f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+    colorImage: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+    featured: true
+  }
+];
 
-        // ===== GALLERY DATA =====
-        let paintings = [
-            {
-                id: 1,
-                title: "Cherry Blossom Night",
-                description: "A serene night scene with cherry blossoms illuminated by moonlight.",
-                bwImage: "https://images.unsplash.com/photo-1580130732478-4e339fb3796f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-                colorImage: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-                featured: true
-            },
-            {
-                id: 2,
-                title: "Ocean Sunset",
-                description: "Vibrant sunset over calm ocean waters with silhouetted palm trees.",
-                bwImage: "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-                colorImage: "https://images.unsplash.com/photo-1519046904884-53103b34b206?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-                featured: false
-            }
-        ];
+// ===== GLOBAL VARIABLES =====
+let paintings = [];
+let isAdmin = false;
+const currentYear = new Date().getFullYear();
 
-        // ===== GLOBAL VARIABLES =====
-        let isAdmin = false;
-        const currentYear = new Date().getFullYear();
-        
-        // ===== PASSWORD PROTECTION =====
-        function showPasswordModal() {
-            const modal = document.getElementById('passwordModal');
-            if (modal) {
-                modal.classList.add('active');
-                document.getElementById('adminPassword').focus();
-            }
-        }
-
-        function hidePasswordModal() {
-            const modal = document.getElementById('passwordModal');
-            if (modal) modal.classList.remove('active');
-        }
-
-        function checkAdminPassword() {
-            const passwordInput = document.getElementById('adminPassword');
-            const errorElement = document.getElementById('passwordError');
-            
-            if (passwordInput.value === ADMIN_PASSWORD) {
-                isAdmin = true;
-                hidePasswordModal();
-                toggleAdminPanel();
-                showAlert("Admin access granted", "success");
-            } else {
-                errorElement.classList.remove('hidden');
-                passwordInput.value = '';
-                setTimeout(() => errorElement.classList.add('hidden'), 3000);
-            }
-        }
-
-        // ===== ADMIN PANEL FUNCTIONALITY =====
-        function toggleAdminPanel() {
-            if (!isAdmin) {
-                showPasswordModal();
-                return;
-            }
-            
-            const adminPanel = document.getElementById('adminPanel');
-            const adminToggle = document.getElementById('adminToggle');
-            
-            if (adminPanel) {
-                adminPanel.classList.toggle('open');
-            }
-            
-            if (adminToggle) {
-                if (isAdmin) {
-                    adminToggle.innerHTML = '<i class="fas fa-unlock"></i>';
-                    adminToggle.title = "Logout";
-                } else {
-                    adminToggle.innerHTML = '<i class="fas fa-lock"></i>';
-                    adminToggle.title = "Login";
-                }
-            }
-            
-            initGallery();
-        }
-
-        function logoutAdmin() {
-            isAdmin = false;
-            const adminPanel = document.getElementById('adminPanel');
-            if (adminPanel) adminPanel.classList.remove('open');
-            
-            const adminToggle = document.getElementById('adminToggle');
-            if (adminToggle) {
-                adminToggle.innerHTML = '<i class="fas fa-lock"></i>';
-                adminToggle.title = "Login";
-            }
-            
-            showAlert("Logged out of admin mode", "info");
-            initGallery();
-        }
-
-        // ===== IMAGE HANDLING =====
-        function setupImagePreview(inputElement, previewElement, progressElement) {
-            inputElement.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                
-                // Validate file type
-                if (!file.type.match('image/(jpeg|png)')) {
-                    showAlert("Only JPG/PNG images are allowed", "error");
-                    inputElement.value = '';
-                    return;
-                }
-                
-                // Validate file size
-                if (file.size > MAX_FILE_SIZE) {
-                    showAlert("File size must be less than 10MB", "error");
-                    inputElement.value = '';
-                    return;
-                }
-                
-                // Show progress bar
-                if (progressElement) {
-                    progressElement.classList.remove('hidden');
-                    const progressBar = progressElement.querySelector('div');
-                    progressBar.style.width = '0%';
-                    
-                    // Simulate upload progress
-                    let progress = 0;
-                    const interval = setInterval(() => {
-                        progress += 10;
-                        progressBar.style.width = `${progress}%`;
-                        if (progress >= 100) clearInterval(interval);
-                    }, 100);
-                }
-                
-                // Create preview
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    previewElement.src = event.target.result;
-                    previewElement.classList.remove('hidden');
-                    if (progressElement) {
-                        setTimeout(() => progressElement.classList.add('hidden'), 500);
-                    }
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-
-        // ===== UPLOAD FUNCTIONALITY =====
-        async function uploadArtwork(title, description, bwFile, colorFile) {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    const newArtwork = {
-                        id: Date.now(),
-                        title,
-                        description,
-                        bwImage: URL.createObjectURL(bwFile),
-                        colorImage: URL.createObjectURL(colorFile),
-                        featured: false
-                    };
-                    
-                    paintings.push(newArtwork);
-                    resolve(newArtwork);
-                }, 1500);
-            });
-        }
-
-        // ===== GALLERY FUNCTIONS =====
-        function initGallery() {
-            const galleryGrid = document.getElementById('galleryGrid');
-            const featuredArtwork = document.getElementById('featuredArtwork');
-            
-            document.getElementById('currentYear').textContent = currentYear;
-            
-            if (galleryGrid) galleryGrid.innerHTML = '';
-            
-            const featured = paintings.find(p => p.featured) || paintings[0];
-            
-            if (featuredArtwork) {
-                featuredArtwork.innerHTML = `
-                    <img class="bw-image" src="${featured.bwImage}" alt="${featured.title} (B&W)">
-                    <img class="color-image" src="${featured.colorImage}" alt="${featured.title} (Color)">
-                    <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-                        <h3 class="text-xl font-bold text-white">${featured.title}</h3>
-                        <p class="text-gray-300 text-sm">${featured.description}</p>
-                    </div>
-                `;
-            }
-            
-            if (galleryGrid) {
-                paintings.forEach(painting => {
-                    const galleryItem = document.createElement('div');
-                    galleryItem.className = 'gallery-item';
-                    galleryItem.innerHTML = `
-                        <div class="relative overflow-hidden rounded-xl aspect-square">
-                            <img class="bw-image" src="${painting.bwImage}" alt="${painting.title} (B&W)">
-                            <img class="color-image" src="${painting.colorImage}" alt="${painting.title} (Color)">
-                            ${isAdmin ? `
-                                <button class="delete-btn" data-id="${painting.id}" aria-label="Delete artwork">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                <button class="featured-selector" data-id="${painting.id}" aria-label="Set as featured">
-                                    <i class="fas ${painting.featured ? 'fa-star' : 'fa-star-o'}"></i>
-                                </button>
-                            ` : ''}
-                        </div>
-                        <div class="mt-4">
-                            <h3 class="text-lg font-semibold">${painting.title}</h3>
-                            <p class="text-gray-400 text-sm mt-1">${painting.description}</p>
-                        </div>
-                    `;
-                    
-                    galleryItem.addEventListener('click', () => openArtworkModal(painting));
-                    galleryGrid.appendChild(galleryItem);
-                });
-                
-                if (isAdmin) {
-                    document.querySelectorAll('.delete-btn').forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            deleteArtwork(btn.dataset.id);
-                        });
-                    });
-                    
-                    document.querySelectorAll('.featured-selector').forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            setFeaturedArtwork(btn.dataset.id);
-                        });
-                    });
-                }
-            }
-        }
-
-        function deleteArtwork(id) {
-            if (confirm("Are you sure you want to delete this artwork?")) {
-                paintings = paintings.filter(p => p.id !== parseInt(id));
-                initGallery();
-                showAlert("Artwork deleted", "success");
-            }
-        }
-
-        function setFeaturedArtwork(id) {
-            paintings.forEach(p => p.featured = p.id === parseInt(id));
-            initGallery();
-            showAlert("Featured artwork updated", "success");
-        }
-
-        // ===== MODAL FUNCTIONS =====
-        function openArtworkModal(painting) {
-            const modal = document.getElementById('artworkModal');
-            const modalImage = document.getElementById('modalImage');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalDescription = document.getElementById('modalDescription');
-            const orderWhatsApp = document.getElementById('orderWhatsApp');
-            
-            if (modal && modalImage && modalTitle && modalDescription && orderWhatsApp) {
-                modalImage.src = painting.colorImage;
-                modalTitle.textContent = painting.title;
-                modalDescription.textContent = painting.description;
-                
-                const message = `I'd like to order "${painting.title}" - ${painting.description}`;
-                orderWhatsApp.href = `https://wa.me/?text=${encodeURIComponent(message)}`;
-                
-                modal.classList.add('active');
-            }
-        }
-
-        function closeArtworkModal() {
-            const modal = document.getElementById('artworkModal');
-            if (modal) {
-                modal.classList.remove('active');
-            }
-        }
-
-        // ===== ALERT FUNCTION =====
-        function showAlert(message, type) {
-            const alert = document.createElement('div');
-            alert.className = `fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 ${
-                type === 'error' ? 'bg-red-500' : 
-                type === 'success' ? 'bg-green-500' : 'bg-blue-500'
-            } text-white`;
-            alert.textContent = message;
-            
-            document.body.appendChild(alert);
-            
-            setTimeout(() => {
-                alert.classList.add('opacity-0', 'transition-opacity', 'duration-500');
-                setTimeout(() => alert.remove(), 500);
-            }, 3000);
-        }
-
-        // ===== UPLOAD FORM HANDLER =====
-        document.getElementById('uploadForm')?.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const title = document.getElementById('paintingTitle').value.trim();
-            const description = document.getElementById('paintingDescription').value.trim();
-            const bwFile = document.getElementById('bwImage').files[0];
-            const colorFile = document.getElementById('colorImage').files[0];
-
-            const submitBtn = this.querySelector('button[type="submit"]');
-            try {
-                // Validate inputs
-                if (!title || title.length > 100) {
-                    throw new Error('Title must be between 1-100 characters');
-                }
-                if (!description || description.length > 500) {
-                    throw new Error('Description must be between 1-500 characters');
-                }
-                if (!bwFile || !colorFile) {
-                    throw new Error('Both images are required');
-                }
-
-                // Show loading state
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-                submitBtn.disabled = true;
-
-                // Upload artwork
-                await uploadArtwork(title, description, bwFile, colorFile);
-
-                showAlert("Artwork uploaded successfully!", "success");
-                initGallery();
-                this.reset();
-                document.getElementById('bwPreview')?.classList.add('hidden');
-                document.getElementById('colorPreview')?.classList.add('hidden');
-
-            } catch (error) {
-                showAlert(error.message || "Upload failed. Please try again.", "error");
-            } finally {
-                submitBtn.innerHTML = '<i class="fas fa-plus"></i> Upload Artwork';
-                submitBtn.disabled = false;
-            }
+// ===== GALLERY FUNCTIONS =====
+function initGallery() {
+  document.getElementById('currentYear').textContent = currentYear;
+  const galleryGrid = document.getElementById('galleryGrid');
+  const featuredArtwork = document.getElementById('featuredArtwork');
+  
+  if (galleryGrid) galleryGrid.innerHTML = '';
+  
+  const featured = paintings.find(p => p.featured) || paintings[0];
+  
+  // Update featured artwork
+  if (featuredArtwork) {
+    featuredArtwork.innerHTML = `
+      <img class="bw-image" src="${featured.bwImage}" alt="${featured.title} (B&W)">
+      <img class="color-image" src="${featured.colorImage}" alt="${featured.title} (Color)">
+      <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+        <h3 class="text-xl font-bold text-white">${featured.title}</h3>
+        <p class="text-gray-300 text-sm">${featured.description}</p>
+      </div>
+    `;
+  }
+  
+  // Populate gallery grid
+  if (galleryGrid) {
+    paintings.forEach(painting => {
+      const galleryItem = document.createElement('div');
+      galleryItem.className = 'gallery-item';
+      galleryItem.innerHTML = `
+        <div class="relative overflow-hidden rounded-xl aspect-square">
+          <img class="bw-image" src="${painting.bwImage}" alt="${painting.title} (B&W)">
+          <img class="color-image" src="${painting.colorImage}" alt="${painting.title} (Color)">
+          ${isAdmin ? `
+            <button class="delete-btn" data-id="${painting.id}" aria-label="Delete artwork">
+              <i class="fas fa-trash"></i>
+            </button>
+            <button class="featured-selector" data-id="${painting.id}" aria-label="Set as featured">
+              <i class="fas ${painting.featured ? 'fa-star' : 'fa-star-o'}"></i>
+            </button>
+          ` : ''}
+        </div>
+        <div class="mt-4">
+          <h3 class="text-lg font-semibold">${painting.title}</h3>
+          <p class="text-gray-400 text-sm mt-1">${painting.description}</p>
+        </div>
+      `;
+      
+      galleryItem.addEventListener('click', () => openArtworkModal(painting));
+      galleryGrid.appendChild(galleryItem);
+    });
+    
+    // Add admin event listeners
+    if (isAdmin) {
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteArtwork(btn.dataset.id);
         });
-
-        // ===== INITIALIZATION =====
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize gallery
-            initGallery();
-            
-            // Setup admin toggle button
-            const adminToggle = document.getElementById('adminToggle');
-            if (adminToggle) {
-                adminToggle.addEventListener('click', toggleAdminPanel);
-            }
-            
-            // Password submission
-            const submitPassword = document.getElementById('submitPassword');
-            if (submitPassword) {
-                submitPassword.addEventListener('click', checkAdminPassword);
-                document.getElementById('adminPassword').addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') checkAdminPassword();
-                });
-            }
-            
-            // Setup image previews
-            setupImagePreview(
-                document.getElementById('bwImage'),
-                document.getElementById('bwPreview'),
-                document.getElementById('bwProgress')
-            );
-            
-            setupImagePreview(
-                document.getElementById('colorImage'),
-                document.getElementById('colorPreview'),
-                document.getElementById('colorProgress')
-            );
-            
-            // Setup modal close button
-            const closeModal = document.getElementById('closeModal');
-            if (closeModal) {
-                closeModal.addEventListener('click', closeArtworkModal);
-            }
-            
-            // Close modal when clicking outside
-            const artworkModal = document.getElementById('artworkModal');
-            if (artworkModal) {
-                artworkModal.addEventListener('click', function(e) {
-                    if (e.target === artworkModal) {
-                        closeArtworkModal();
-                    }
-                });
-            }
+      });
+      
+      document.querySelectorAll('.featured-selector').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setFeaturedArtwork(btn.dataset.id);
         });
+      });
+    }
+  }
+}
+
+// ===== GITHUB UPLOAD FUNCTIONS =====
+async function uploadToGitHub(file, filename) {
+  const base64Content = await new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.readAsDataURL(file);
+  });
+
+  const response = await fetch(
+    `https://api.github.com/repos/${GITHUB_REPO}/contents/images/${filename}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: 'Upload image via Hikari Box',
+        content: base64Content,
+        branch: 'main',
+      }),
+    }
+  );
+
+  if (!response.ok) throw new Error("GitHub upload failed");
+  const data = await response.json();
+  return data.content.download_url;
+}
+
+async function saveGalleryData() {
+  const response = await fetch(
+    `https://api.github.com/repos/${GITHUB_REPO}/contents/gallery-data.json`,
+    {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: 'Update gallery data',
+        content: btoa(JSON.stringify(paintings)),
+        branch: 'main',
+      }),
+    }
+  );
+  return await response.json();
+}
+
+async function loadGalleryData() {
+  try {
+    const response = await fetch(
+      `https://raw.githubusercontent.com/${GITHUB_REPO}/main/gallery-data.json?t=${Date.now()}`
+    );
+    paintings = await response.json();
+  } catch (error) {
+    console.log("Using default gallery data");
+    paintings = [...DEFAULT_PAINTINGS];
+  }
+  initGallery();
+}
+
+// ===== ARTWORK MANAGEMENT =====
+async function uploadArtwork(title, description, bwFile, colorFile) {
+  const timestamp = Date.now();
+  const bwFilename = `bw_${timestamp}.jpg`;
+  const colorFilename = `color_${timestamp}.jpg`;
+
+  const [bwUrl, colorUrl] = await Promise.all([
+    uploadToGitHub(bwFile, bwFilename),
+    uploadToGitHub(colorFile, colorFilename)
+  ]);
+
+  const newArtwork = {
+    id: timestamp,
+    title,
+    description,
+    bwImage: bwUrl,
+    colorImage: colorUrl,
+    featured: false
+  };
+
+  paintings.push(newArtwork);
+  await saveGalleryData();
+  return newArtwork;
+}
+
+function deleteArtwork(id) {
+  if (confirm("Are you sure you want to delete this artwork?")) {
+    paintings = paintings.filter(p => p.id !== parseInt(id));
+    saveGalleryData();
+    initGallery();
+    showAlert("Artwork deleted", "success");
+  }
+}
+
+function setFeaturedArtwork(id) {
+  paintings.forEach(p => p.featured = p.id === parseInt(id));
+  saveGalleryData();
+  initGallery();
+  showAlert("Featured artwork updated", "success");
+}
+
+// ===== UI FUNCTIONS =====
+function openArtworkModal(painting) {
+  const modal = document.getElementById('artworkModal');
+  const modalImage = document.getElementById('modalImage');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalDescription = document.getElementById('modalDescription');
+  const orderWhatsApp = document.getElementById('orderWhatsApp');
+  
+  if (modal && modalImage && modalTitle && modalDescription && orderWhatsApp) {
+    modalImage.src = painting.colorImage;
+    modalTitle.textContent = painting.title;
+    modalDescription.textContent = painting.description;
+    orderWhatsApp.href = `https://wa.me/?text=${encodeURIComponent(`I'd like to order "${painting.title}" - ${painting.description}`)}`;
+    modal.classList.add('active');
+  }
+}
+
+function closeArtworkModal() {
+  const modal = document.getElementById('artworkModal');
+  if (modal) modal.classList.remove('active');
+}
+
+function showAlert(message, type) {
+  const alert = document.createElement('div');
+  alert.className = `fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 ${
+    type === 'error' ? 'bg-red-500' : 
+    type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+  } text-white`;
+  alert.textContent = message;
+  document.body.appendChild(alert);
+  setTimeout(() => {
+    alert.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+    setTimeout(() => alert.remove(), 500);
+  }, 3000);
+}
+
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadGalleryData();
+  
+  // Admin toggle
+  document.getElementById('adminToggle')?.addEventListener('click', () => {
+    if (!isAdmin) {
+      document.getElementById('passwordModal').classList.add('active');
+      document.getElementById('adminPassword').focus();
+    } else {
+      logoutAdmin();
+    }
+  });
+
+  // Password submission
+  document.getElementById('submitPassword')?.addEventListener('click', () => {
+    const password = document.getElementById('adminPassword').value;
+    if (password === "admin123") {  // ← You can change this password
+      isAdmin = true;
+      document.getElementById('passwordModal').classList.remove('active');
+      document.getElementById('adminToggle').innerHTML = '<i class="fas fa-unlock"></i>';
+      showAlert("Admin mode activated", "success");
+      initGallery();
+    } else {
+      document.getElementById('passwordError').classList.remove('hidden');
+      setTimeout(() => {
+        document.getElementById('passwordError').classList.add('hidden');
+      }, 3000);
+    }
+  });
+
+  // Modal close
+  document.getElementById('closeModal')?.addEventListener('click', closeArtworkModal);
+  document.getElementById('artworkModal')?.addEventListener('click', (e) => {
+    if (e.target === document.getElementById('artworkModal')) closeArtworkModal();
+  });
+
+  // Image preview setup
+  setupImagePreview('bwImage', 'bwPreview');
+  setupImagePreview('colorImage', 'colorPreview');
+});
+
+function setupImagePreview(inputId, previewId) {
+  const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  if (!input || !preview) return;
+
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (!file.type.match('image/(jpeg|png)')) {
+      showAlert("Only JPG/PNG images allowed", "error");
+      input.value = '';
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      showAlert("Image must be <10MB", "error");
+      input.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      preview.src = e.target.result;
+      preview.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function logoutAdmin() {
+  isAdmin = false;
+  document.getElementById('adminToggle').innerHTML = '<i class="fas fa-lock"></i>';
+  showAlert("Admin mode deactivated", "info");
+  initGallery();
+}
     </script>
 </body>
 </html>
