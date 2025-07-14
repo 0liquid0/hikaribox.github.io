@@ -559,8 +559,8 @@
 
     <script>
         // ===== CONFIGURATION =====
-        const GITHUB_REPO = "0liquid0/hikari-box";  // ← Your GitHub repo
-        const GITHUB_TOKEN = "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"; // ← Your token
+        const GITHUB_REPO = "your-username/your-repo";  // ← Your GitHub repo
+        const GITHUB_TOKEN = "your-github-token"; // ← Your token
         const ADMIN_PASSWORD = "admin123"; // Admin password
         const DEFAULT_PAINTINGS = [
           {
@@ -579,128 +579,133 @@
         const currentYear = new Date().getFullYear();
 
         // ===== ADMIN FUNCTIONS =====
-        function toggleAdminPanel() {
-            const adminPanel = document.getElementById('adminPanel');
-            const adminToggle = document.getElementById('adminToggle');
-            
-            if (!isAdmin) {
-                // Show password modal if not admin
-                document.getElementById('passwordModal').classList.add('active');
-                document.getElementById('adminPassword').focus();
-                return;
-            }
-            
-            // Toggle admin panel
-            if (adminPanel) {
-                adminPanel.classList.toggle('open');
-            }
-            
+        function toggleAdminPanel(e) {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          
+          const adminPanel = document.getElementById('adminPanel');
+          const adminToggle = document.getElementById('adminToggle');
+          
+          if (!isAdmin) {
+            // Show password modal if not admin
+            document.getElementById('passwordModal').classList.add('active');
+            document.getElementById('adminPassword').focus();
+            return;
+          }
+          
+          // If already admin, toggle the panel
+          if (adminPanel) {
+            adminPanel.classList.toggle('open');
             // Update toggle button
             if (adminToggle) {
-                adminToggle.innerHTML = isAdmin ? '<i class="fas fa-unlock"></i>' : '<i class="fas fa-lock"></i>';
-                adminToggle.title = isAdmin ? "Logout" : "Login";
+              adminToggle.innerHTML = adminPanel.classList.contains('open') 
+                ? '<i class="fas fa-unlock"></i>' 
+                : '<i class="fas fa-lock"></i>';
             }
-            
-            initGallery();
+          }
+          
+          initGallery();
         }
 
         function checkAdminPassword() {
-            const passwordInput = document.getElementById('adminPassword');
-            const errorElement = document.getElementById('passwordError');
-            
-            if (passwordInput.value === ADMIN_PASSWORD) {
-                isAdmin = true;
-                hidePasswordModal();
-                document.getElementById('adminToggle').innerHTML = '<i class="fas fa-unlock"></i>';
-                showAlert("Admin access granted", "success");
-                toggleAdminPanel();
-            } else {
-                errorElement.classList.remove('hidden');
-                passwordInput.value = '';
-                setTimeout(() => errorElement.classList.add('hidden'), 3000);
-            }
+          const passwordInput = document.getElementById('adminPassword');
+          const errorElement = document.getElementById('passwordError');
+          
+          if (passwordInput.value === ADMIN_PASSWORD) {
+            isAdmin = true;
+            hidePasswordModal();
+            document.getElementById('adminToggle').innerHTML = '<i class="fas fa-unlock"></i>';
+            showAlert("Admin access granted", "success");
+            // Open admin panel after successful login
+            toggleAdminPanel();
+          } else {
+            errorElement.classList.remove('hidden');
+            passwordInput.value = '';
+            setTimeout(() => errorElement.classList.add('hidden'), 3000);
+          }
         }
 
         function hidePasswordModal() {
-            document.getElementById('passwordModal').classList.remove('active');
-            document.getElementById('adminPassword').value = '';
+          document.getElementById('passwordModal').classList.remove('active');
+          document.getElementById('adminPassword').value = '';
         }
 
         function logoutAdmin() {
-            isAdmin = false;
-            document.getElementById('adminPanel').classList.remove('open');
-            document.getElementById('adminToggle').innerHTML = '<i class="fas fa-lock"></i>';
-            showAlert("Logged out of admin mode", "info");
-            initGallery();
+          isAdmin = false;
+          document.getElementById('adminPanel').classList.remove('open');
+          document.getElementById('adminToggle').innerHTML = '<i class="fas fa-lock"></i>';
+          showAlert("Logged out of admin mode", "info");
+          initGallery();
         }
 
         // ===== GALLERY FUNCTIONS =====
         function initGallery() {
-            document.getElementById('currentYear').textContent = currentYear;
-            const galleryGrid = document.getElementById('galleryGrid');
-            const featuredArtwork = document.getElementById('featuredArtwork');
+          document.getElementById('currentYear').textContent = currentYear;
+          const galleryGrid = document.getElementById('galleryGrid');
+          const featuredArtwork = document.getElementById('featuredArtwork');
+          
+          if (galleryGrid) galleryGrid.innerHTML = '';
+          
+          const featured = paintings.find(p => p.featured) || paintings[0];
+          
+          if (featuredArtwork) {
+            featuredArtwork.innerHTML = `
+              <img class="bw-image" src="${featured.bwImage}" alt="${featured.title} (B&W)">
+              <img class="color-image" src="${featured.colorImage}" alt="${featured.title} (Color)">
+              <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                <h3 class="text-xl font-bold text-white">${featured.title}</h3>
+                <p class="text-gray-300 text-sm">${featured.description}</p>
+              </div>
+            `;
+          }
+          
+          if (galleryGrid) {
+            paintings.forEach(painting => {
+              const galleryItem = document.createElement('div');
+              galleryItem.className = 'gallery-item';
+              galleryItem.innerHTML = `
+                <div class="relative overflow-hidden rounded-xl aspect-square">
+                  <img class="bw-image" src="${painting.bwImage}" alt="${painting.title} (B&W)">
+                  <img class="color-image" src="${painting.colorImage}" alt="${painting.title} (Color)">
+                  ${isAdmin ? `
+                    <button class="delete-btn" data-id="${painting.id}" aria-label="Delete artwork">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="featured-selector" data-id="${painting.id}" aria-label="Set as featured">
+                      <i class="fas ${painting.featured ? 'fa-star' : 'fa-star-o'}"></i>
+                    </button>
+                  ` : ''}
+                </div>
+                <div class="mt-4">
+                  <h3 class="text-lg font-semibold">${painting.title}</h3>
+                  <p class="text-gray-400 text-sm mt-1">${painting.description}</p>
+                </div>
+              `;
+              
+              galleryItem.addEventListener('click', () => openArtworkModal(painting));
+              galleryGrid.appendChild(galleryItem);
+            });
             
-            if (galleryGrid) galleryGrid.innerHTML = '';
-            
-            const featured = paintings.find(p => p.featured) || paintings[0];
-            
-            if (featuredArtwork) {
-                featuredArtwork.innerHTML = `
-                    <img class="bw-image" src="${featured.bwImage}" alt="${featured.title} (B&W)">
-                    <img class="color-image" src="${featured.colorImage}" alt="${featured.title} (Color)">
-                    <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-                        <h3 class="text-xl font-bold text-white">${featured.title}</h3>
-                        <p class="text-gray-300 text-sm">${featured.description}</p>
-                    </div>
-                `;
-            }
-            
-            if (galleryGrid) {
-                paintings.forEach(painting => {
-                    const galleryItem = document.createElement('div');
-                    galleryItem.className = 'gallery-item';
-                    galleryItem.innerHTML = `
-                        <div class="relative overflow-hidden rounded-xl aspect-square">
-                            <img class="bw-image" src="${painting.bwImage}" alt="${painting.title} (B&W)">
-                            <img class="color-image" src="${painting.colorImage}" alt="${painting.title} (Color)">
-                            ${isAdmin ? `
-                                <button class="delete-btn" data-id="${painting.id}" aria-label="Delete artwork">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                <button class="featured-selector" data-id="${painting.id}" aria-label="Set as featured">
-                                    <i class="fas ${painting.featured ? 'fa-star' : 'fa-star-o'}"></i>
-                                </button>
-                            ` : ''}
-                        </div>
-                        <div class="mt-4">
-                            <h3 class="text-lg font-semibold">${painting.title}</h3>
-                            <p class="text-gray-400 text-sm mt-1">${painting.description}</p>
-                        </div>
-                    `;
-                    
-                    galleryItem.addEventListener('click', () => openArtworkModal(painting));
-                    galleryGrid.appendChild(galleryItem);
+            if (isAdmin) {
+              document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  deleteArtwork(btn.dataset.id);
                 });
-                
-                if (isAdmin) {
-                    document.querySelectorAll('.delete-btn').forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            deleteArtwork(btn.dataset.id);
-                        });
-                    });
-                    
-                    document.querySelectorAll('.featured-selector').forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            setFeaturedArtwork(btn.dataset.id);
-                        });
-                    });
-                }
+              });
+              
+              document.querySelectorAll('.featured-selector').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  setFeaturedArtwork(btn.dataset.id);
+                });
+              });
             }
+          }
         }
 
-        // [Rest of your existing functions remain the same...]
         // ===== GITHUB UPLOAD FUNCTIONS =====
         async function uploadToGitHub(file, filename) {
           const base64Content = await new Promise((resolve) => {
@@ -839,6 +844,36 @@
           }, 3000);
         }
 
+        function setupImagePreview(inputId, previewId) {
+          const input = document.getElementById(inputId);
+          const preview = document.getElementById(previewId);
+          if (!input || !preview) return;
+
+          input.addEventListener('change', () => {
+            const file = input.files[0];
+            if (!file) return;
+
+            if (!file.type.match('image/(jpeg|png)')) {
+              showAlert("Only JPG/PNG images allowed", "error");
+              input.value = '';
+              return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+              showAlert("Image must be <10MB", "error");
+              input.value = '';
+              return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              preview.src = e.target.result;
+              preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+          });
+        }
+
         // ===== INITIALIZATION =====
         document.addEventListener('DOMContentLoaded', async () => {
           await loadGalleryData();
@@ -852,6 +887,13 @@
           // Allow Enter key for password submission
           document.getElementById('adminPassword').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') checkAdminPassword();
+          });
+
+          // Close password modal when clicking outside
+          document.getElementById('passwordModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+              hidePasswordModal();
+            }
           });
 
           // Modal close
@@ -907,36 +949,6 @@
             }
           });
         });
-
-        function setupImagePreview(inputId, previewId) {
-          const input = document.getElementById(inputId);
-          const preview = document.getElementById(previewId);
-          if (!input || !preview) return;
-
-          input.addEventListener('change', () => {
-            const file = input.files[0];
-            if (!file) return;
-
-            if (!file.type.match('image/(jpeg|png)')) {
-              showAlert("Only JPG/PNG images allowed", "error");
-              input.value = '';
-              return;
-            }
-
-            if (file.size > 10 * 1024 * 1024) {
-              showAlert("Image must be <10MB", "error");
-              input.value = '';
-              return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              preview.src = e.target.result;
-              preview.classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-          });
-        }
     </script>
 </body>
 </html>
