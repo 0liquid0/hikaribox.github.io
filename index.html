@@ -371,6 +371,15 @@
             .hero-subtitle {
                 font-size: 1.2rem;
             }
+            
+            .admin-panel.open {
+                padding: 20px 0;
+            }
+            
+            .upload-preview {
+                max-width: 150px;
+                max-height: 150px;
+            }
         }
     </style>
 </head>
@@ -425,19 +434,19 @@
                 <form id="uploadForm" class="space-y-6">
                     <div class="space-y-2">
                         <label for="paintingTitle" class="block text-gray-300">Painting Title</label>
-                        <input type="text" id="paintingTitle" class="w-full px-4 py-3 rounded-lg glass-effect text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-400/30 focus:outline-none" required>
+                        <input type="text" id="paintingTitle" class="w-full px-4 py-3 rounded-lg glass-effect text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-400/30 focus:outline-none" required maxlength="100">
                     </div>
                     
                     <div class="space-y-2">
                         <label for="paintingDescription" class="block text-gray-300">Description</label>
-                        <textarea id="paintingDescription" rows="3" class="w-full px-4 py-3 rounded-lg glass-effect text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-400/30 focus:outline-none"></textarea>
+                        <textarea id="paintingDescription" rows="3" class="w-full px-4 py-3 rounded-lg glass-effect text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-400/30 focus:outline-none" maxlength="500"></textarea>
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label class="block text-gray-300">Black & White Image</label>
                             <div class="relative">
-                                <input type="file" id="bwImage" class="hidden" accept="image/*" required>
+                                <input type="file" id="bwImage" class="hidden" accept="image/jpeg, image/png" required>
                                 <button type="button" onclick="document.getElementById('bwImage').click()" class="w-full glass-effect py-3 px-4 rounded-lg text-center cursor-pointer hover:bg-white/5 transition ocean-border">
                                     <i class="fas fa-cloud-upload-alt text-2xl mb-2 text-blue-400"></i>
                                     <p class="text-gray-300 text-sm">Click to upload</p>
@@ -446,13 +455,16 @@
                             </div>
                             <div class="mt-4 flex justify-center">
                                 <img id="bwPreview" src="" alt="B&W Preview" class="upload-preview hidden">
+                                <div id="bwProgress" class="hidden w-full bg-gray-700 rounded-full h-2.5 mt-2">
+                                    <div class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                                </div>
                             </div>
                         </div>
                         
                         <div class="space-y-2">
                             <label class="block text-gray-300">Color Image</label>
                             <div class="relative">
-                                <input type="file" id="colorImage" class="hidden" accept="image/*" required>
+                                <input type="file" id="colorImage" class="hidden" accept="image/jpeg, image/png" required>
                                 <button type="button" onclick="document.getElementById('colorImage').click()" class="w-full glass-effect py-3 px-4 rounded-lg text-center cursor-pointer hover:bg-white/5 transition ocean-border">
                                     <i class="fas fa-cloud-upload-alt text-2xl mb-2 text-blue-400"></i>
                                     <p class="text-gray-300 text-sm">Click to upload</p>
@@ -461,6 +473,9 @@
                             </div>
                             <div class="mt-4 flex justify-center">
                                 <img id="colorPreview" src="" alt="Color Preview" class="upload-preview hidden">
+                                <div id="colorProgress" class="hidden w-full bg-gray-700 rounded-full h-2.5 mt-2">
+                                    <div class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -518,19 +533,8 @@
         </div>
     </div>
 
-    <!-- Footer with Admin Login -->
-    <footer class="glass-effect py-8 text-center mt-20 ocean-border relative">
-        <div class="container mx-auto px-4">
-            <div class="flex flex-col md:flex-row justify-between items-center">
-                <p class="text-gray-400 mb-4 md:mb-0">&copy; <span id="currentYear"></span> Hikari Box. All rights reserved.</p>
-            </div>
-        </div>
-        <!-- Moved Admin Login Button to Footer -->
-        <button id="adminToggle" class="absolute bottom-4 right-4 glass-effect text-white p-3 rounded-full hover:shadow-xl transition-all duration-500 btn-glow ocean-border" aria-label="Admin login">
-            <i class="fas fa-lock"></i>
-        </button>
-    </footer>
- <div id="passwordModal" class="artwork-modal">
+    <!-- Password Modal -->
+    <div id="passwordModal" class="artwork-modal">
         <div class="modal-content bg-gray-800 p-8 rounded-xl max-w-md">
             <h3 class="text-2xl font-bold mb-6 text-center">Admin Login</h3>
             <input type="password" id="adminPassword" class="w-full px-4 py-3 rounded-lg bg-gray-700 text-white mb-4" placeholder="Enter admin password">
@@ -540,10 +544,23 @@
             <p id="passwordError" class="text-red-400 mt-2 text-sm hidden">Incorrect password</p>
         </div>
     </div>
+
+    <!-- Footer with Admin Login -->
+    <footer class="glass-effect py-8 text-center mt-20 ocean-border relative">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400 mb-4 md:mb-0">&copy; <span id="currentYear"></span> Hikari Box. All rights reserved.</p>
+            </div>
+        </div>
+        <button id="adminToggle" class="absolute bottom-4 right-4 glass-effect text-white p-3 rounded-full hover:shadow-xl transition-all duration-500 btn-glow ocean-border" aria-label="Admin login">
+            <i class="fas fa-lock"></i>
+        </button>
+    </footer>
+
     <script>
- // ===== CONFIGURATION =====
-        const ADMIN_PASSWORD = "hikari123"; // Change this to your desired password
-        const REPO = "0liquid0/hikaribox.github.io";
+        // ===== CONFIGURATION =====
+        const ADMIN_PASSWORD = "admin123"; // Changed to admin123 as requested
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
         // ===== GALLERY DATA =====
         let paintings = [
@@ -641,11 +658,56 @@
             initGallery();
         }
 
+        // ===== IMAGE HANDLING =====
+        function setupImagePreview(inputElement, previewElement, progressElement) {
+            inputElement.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                // Validate file type
+                if (!file.type.match('image/(jpeg|png)')) {
+                    showAlert("Only JPG/PNG images are allowed", "error");
+                    inputElement.value = '';
+                    return;
+                }
+                
+                // Validate file size
+                if (file.size > MAX_FILE_SIZE) {
+                    showAlert("File size must be less than 10MB", "error");
+                    inputElement.value = '';
+                    return;
+                }
+                
+                // Show progress bar
+                if (progressElement) {
+                    progressElement.classList.remove('hidden');
+                    const progressBar = progressElement.querySelector('div');
+                    progressBar.style.width = '0%';
+                    
+                    // Simulate upload progress
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += 10;
+                        progressBar.style.width = `${progress}%`;
+                        if (progress >= 100) clearInterval(interval);
+                    }, 100);
+                }
+                
+                // Create preview
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    previewElement.src = event.target.result;
+                    previewElement.classList.remove('hidden');
+                    if (progressElement) {
+                        setTimeout(() => progressElement.classList.add('hidden'), 500);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
         // ===== UPLOAD FUNCTIONALITY =====
         async function uploadArtwork(title, description, bwFile, colorFile) {
-            // For demo purposes, we'll simulate upload with local URLs
-            // In a real implementation, you would upload to a server
-            
             return new Promise((resolve) => {
                 setTimeout(() => {
                     const newArtwork = {
@@ -659,7 +721,7 @@
                     
                     paintings.push(newArtwork);
                     resolve(newArtwork);
-                }, 1500); // Simulate network delay
+                }, 1500);
             });
         }
 
@@ -730,8 +792,63 @@
             }
         }
 
-        // [Rest of your existing functions remain the same: deleteArtwork, setFeaturedArtwork, 
-        // openArtworkModal, closeArtworkModal, showAlert, etc.]
+        function deleteArtwork(id) {
+            if (confirm("Are you sure you want to delete this artwork?")) {
+                paintings = paintings.filter(p => p.id !== parseInt(id));
+                initGallery();
+                showAlert("Artwork deleted", "success");
+            }
+        }
+
+        function setFeaturedArtwork(id) {
+            paintings.forEach(p => p.featured = p.id === parseInt(id));
+            initGallery();
+            showAlert("Featured artwork updated", "success");
+        }
+
+        // ===== MODAL FUNCTIONS =====
+        function openArtworkModal(painting) {
+            const modal = document.getElementById('artworkModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalDescription = document.getElementById('modalDescription');
+            const orderWhatsApp = document.getElementById('orderWhatsApp');
+            
+            if (modal && modalImage && modalTitle && modalDescription && orderWhatsApp) {
+                modalImage.src = painting.colorImage;
+                modalTitle.textContent = painting.title;
+                modalDescription.textContent = painting.description;
+                
+                const message = `I'd like to order "${painting.title}" - ${painting.description}`;
+                orderWhatsApp.href = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                
+                modal.classList.add('active');
+            }
+        }
+
+        function closeArtworkModal() {
+            const modal = document.getElementById('artworkModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
+        // ===== ALERT FUNCTION =====
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 ${
+                type === 'error' ? 'bg-red-500' : 
+                type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+            } text-white`;
+            alert.textContent = message;
+            
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+                setTimeout(() => alert.remove(), 500);
+            }, 3000);
+        }
 
         // ===== UPLOAD FORM HANDLER =====
         document.getElementById('uploadForm')?.addEventListener('submit', async function(e) {
@@ -778,9 +895,10 @@
 
         // ===== INITIALIZATION =====
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize gallery
             initGallery();
             
-            // Admin toggle with password protection
+            // Setup admin toggle button
             const adminToggle = document.getElementById('adminToggle');
             if (adminToggle) {
                 adminToggle.addEventListener('click', toggleAdminPanel);
@@ -795,7 +913,34 @@
                 });
             }
             
-            // [Rest of your existing initialization code]
+            // Setup image previews
+            setupImagePreview(
+                document.getElementById('bwImage'),
+                document.getElementById('bwPreview'),
+                document.getElementById('bwProgress')
+            );
+            
+            setupImagePreview(
+                document.getElementById('colorImage'),
+                document.getElementById('colorPreview'),
+                document.getElementById('colorProgress')
+            );
+            
+            // Setup modal close button
+            const closeModal = document.getElementById('closeModal');
+            if (closeModal) {
+                closeModal.addEventListener('click', closeArtworkModal);
+            }
+            
+            // Close modal when clicking outside
+            const artworkModal = document.getElementById('artworkModal');
+            if (artworkModal) {
+                artworkModal.addEventListener('click', function(e) {
+                    if (e.target === artworkModal) {
+                        closeArtworkModal();
+                    }
+                });
+            }
         });
     </script>
 </body>
