@@ -532,128 +532,136 @@
     </footer>
 
     <script>
-      // ===== SAFE UPLOAD CONFIG =====
-const REPO = "0liquid0/hikaribox.github.io";
+    // ===== GLOBAL VARIABLES =====
+    let isAdmin = false;
+    const currentYear = new Date().getFullYear();
+    document.getElementById('currentYear').textContent = currentYear;
 
-// ===== CORE FUNCTIONS =====
-function toBase64(file) {
-    return new Promise((resolve, reject) => {
-        // Validate file type
-        if (!file.type.match('image.*')) {
-            return reject(new Error('Only image files are allowed'));
+    // ===== ADMIN PANEL FUNCTIONALITY =====
+    function toggleAdminPanel() {
+        isAdmin = !isAdmin;
+        const adminPanel = document.getElementById('adminPanel');
+        const adminToggle = document.getElementById('adminToggle');
+        
+        adminPanel.classList.toggle('open');
+        
+        // Change the lock icon based on admin state
+        if (isAdmin) {
+            adminToggle.innerHTML = '<i class="fas fa-unlock"></i>';
+            adminToggle.title = "Logout";
+        } else {
+            adminToggle.innerHTML = '<i class="fas fa-lock"></i>';
+            adminToggle.title = "Login";
         }
         
-        // Validate file size (e.g., 5MB max)
-        if (file.size > 5 * 1024 * 1024) {
-            return reject(new Error('File size must be less than 5MB'));
-        }
-
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
-}
-
-async function triggerWorkflow(title, description, bwFile, colorFile) {
-    // Input validation
-    if (!title || !description || !bwFile || !colorFile) {
-        throw new Error('All fields are required');
+        // Optional: Show a notification
+        showAlert(isAdmin ? "Admin mode activated" : "Admin mode deactivated", isAdmin ? "success" : "info");
     }
 
-    const timestamp = Date.now();
-    const [bwBase64, colorBase64] = await Promise.all([
-        toBase64(bwFile),
-        toBase64(colorFile)
-    ]);
-
-    try {
-        // In a real implementation, you should:
-        // 1. Call your own backend endpoint that has the token securely stored
-        // 2. Let the backend communicate with GitHub API
-        const response = await fetch('/api/upload-artwork', { // This should be your own endpoint
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                title,
-                description,
-                timestamp,
-                bw_image: bwBase64.split(',')[1],
-                color_image: colorBase64.split(',')[1]
-            })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || "Upload failed");
-        }
-        
-        const data = await response.json();
-        return {
-            bwUrl: data.bwUrl,
-            colorUrl: data.colorUrl
-        };
-    } catch (error) {
-        console.error("Upload failed:", error);
-        throw error;
-    }
-}
-
-// ===== UPDATED UPLOAD HANDLER =====
-document.getElementById('uploadForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const title = document.getElementById('paintingTitle').value.trim();
-    const description = document.getElementById('paintingDescription').value.trim();
-    const bwFile = document.getElementById('bwImage').files[0];
-    const colorFile = document.getElementById('colorImage').files[0];
-
-    const submitBtn = this.querySelector('button[type="submit"]');
-    try {
-        // Validate inputs
-        if (!title || title.length > 100) {
-            throw new Error('Title must be between 1-100 characters');
-        }
-        if (!description || description.length > 500) {
-            throw new Error('Description must be between 1-500 characters');
-        }
-        if (!bwFile || !colorFile) {
-            throw new Error('Both images are required');
-        }
-
-        // Show loading state
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-        submitBtn.disabled = true;
-
-        // Trigger workflow
-        const { bwUrl, colorUrl } = await triggerWorkflow(title, description, bwFile, colorFile);
-
-        // Add to local gallery
-        paintings.push({
-            id: Date.now(),
-            title,
-            description,
-            bwImage: bwUrl,
-            colorImage: colorUrl,
-            featured: false
-        });
-
-        showAlert("Artwork saved successfully!", "success");
+    // ===== EVENT LISTENERS =====
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize gallery
         initGallery();
-        this.reset();
-        document.getElementById('bwPreview')?.classList.add('hidden');
-        document.getElementById('colorPreview')?.classList.add('hidden');
+        
+        // Setup admin toggle button
+        const adminToggle = document.getElementById('adminToggle');
+        if (adminToggle) {
+            adminToggle.addEventListener('click', toggleAdminPanel);
+        }
+        
+        // Setup image previews for upload form
+        setupImagePreviews();
+        
+        // Setup modal close button
+        const closeModal = document.getElementById('closeModal');
+        if (closeModal) {
+            closeModal.addEventListener('click', closeArtworkModal);
+        }
+    });
 
-    } catch (error) {
-        showAlert(error.message || "Upload failed. Please try again.", "error");
-    } finally {
-        // Reset button
-        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Upload Artwork';
-        submitBtn.disabled = false;
+    // ===== IMAGE PREVIEW SETUP =====
+    function setupImagePreviews() {
+        // BW Image Preview
+        const bwImageInput = document.getElementById('bwImage');
+        if (bwImageInput) {
+            bwImageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                const preview = document.getElementById('bwPreview');
+                if (file && preview) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        preview.src = event.target.result;
+                        preview.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        
+        // Color Image Preview
+        const colorImageInput = document.getElementById('colorImage');
+        if (colorImageInput) {
+            colorImageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                const preview = document.getElementById('colorPreview');
+                if (file && preview) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        preview.src = event.target.result;
+                        preview.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
     }
-});
+
+    // ===== MODAL FUNCTIONS =====
+    function openArtworkModal(painting) {
+        const modal = document.getElementById('artworkModal');
+        const modalImage = document.getElementById('modalImage');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDescription = document.getElementById('modalDescription');
+        const orderWhatsApp = document.getElementById('orderWhatsApp');
+        
+        if (modal && modalImage && modalTitle && modalDescription && orderWhatsApp) {
+            modalImage.src = painting.colorImage;
+            modalTitle.textContent = painting.title;
+            modalDescription.textContent = painting.description;
+            
+            // Create WhatsApp order link
+            const message = `I'd like to order "${painting.title}" - ${painting.description}`;
+            orderWhatsApp.href = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            
+            modal.classList.add('active');
+        }
+    }
+
+    function closeArtworkModal() {
+        const modal = document.getElementById('artworkModal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    }
+
+    // ===== ALERT FUNCTION =====
+    function showAlert(message, type) {
+        const alert = document.createElement('div');
+        alert.className = `fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 ${
+            type === 'error' ? 'bg-red-500' : 
+            type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+        } text-white`;
+        alert.textContent = message;
+        
+        document.body.appendChild(alert);
+        
+        setTimeout(() => {
+            alert.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+            setTimeout(() => alert.remove(), 500);
+        }, 3000);
+    }
+
+    // ... [rest of your existing script including the gallery functions] ...
     </script>
 </body>
 </html>
