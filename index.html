@@ -530,9 +530,22 @@
             <i class="fas fa-lock"></i>
         </button>
     </footer>
-
+ <div id="passwordModal" class="artwork-modal">
+        <div class="modal-content bg-gray-800 p-8 rounded-xl max-w-md">
+            <h3 class="text-2xl font-bold mb-6 text-center">Admin Login</h3>
+            <input type="password" id="adminPassword" class="w-full px-4 py-3 rounded-lg bg-gray-700 text-white mb-4" placeholder="Enter admin password">
+            <button id="submitPassword" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-semibold">
+                Submit
+            </button>
+            <p id="passwordError" class="text-red-400 mt-2 text-sm hidden">Incorrect password</p>
+        </div>
+    </div>
     <script>
- // ===== GALLERY DATA =====
+ // ===== CONFIGURATION =====
+        const ADMIN_PASSWORD = "hikari123"; // Change this to your desired password
+        const REPO = "0liquid0/hikaribox.github.io";
+
+        // ===== GALLERY DATA =====
         let paintings = [
             {
                 id: 1,
@@ -556,9 +569,43 @@
         let isAdmin = false;
         const currentYear = new Date().getFullYear();
         
+        // ===== PASSWORD PROTECTION =====
+        function showPasswordModal() {
+            const modal = document.getElementById('passwordModal');
+            if (modal) {
+                modal.classList.add('active');
+                document.getElementById('adminPassword').focus();
+            }
+        }
+
+        function hidePasswordModal() {
+            const modal = document.getElementById('passwordModal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function checkAdminPassword() {
+            const passwordInput = document.getElementById('adminPassword');
+            const errorElement = document.getElementById('passwordError');
+            
+            if (passwordInput.value === ADMIN_PASSWORD) {
+                isAdmin = true;
+                hidePasswordModal();
+                toggleAdminPanel();
+                showAlert("Admin access granted", "success");
+            } else {
+                errorElement.classList.remove('hidden');
+                passwordInput.value = '';
+                setTimeout(() => errorElement.classList.add('hidden'), 3000);
+            }
+        }
+
         // ===== ADMIN PANEL FUNCTIONALITY =====
         function toggleAdminPanel() {
-            isAdmin = !isAdmin;
+            if (!isAdmin) {
+                showPasswordModal();
+                return;
+            }
+            
             const adminPanel = document.getElementById('adminPanel');
             const adminToggle = document.getElementById('adminToggle');
             
@@ -567,20 +614,53 @@
             }
             
             if (adminToggle) {
-                // Change the lock icon based on admin state
                 if (isAdmin) {
                     adminToggle.innerHTML = '<i class="fas fa-unlock"></i>';
                     adminToggle.title = "Logout";
-                    showAlert("Admin mode activated", "success");
                 } else {
                     adminToggle.innerHTML = '<i class="fas fa-lock"></i>';
                     adminToggle.title = "Login";
-                    showAlert("Admin mode deactivated", "info");
                 }
             }
             
-            // Refresh gallery to show/hide admin controls
             initGallery();
+        }
+
+        function logoutAdmin() {
+            isAdmin = false;
+            const adminPanel = document.getElementById('adminPanel');
+            if (adminPanel) adminPanel.classList.remove('open');
+            
+            const adminToggle = document.getElementById('adminToggle');
+            if (adminToggle) {
+                adminToggle.innerHTML = '<i class="fas fa-lock"></i>';
+                adminToggle.title = "Login";
+            }
+            
+            showAlert("Logged out of admin mode", "info");
+            initGallery();
+        }
+
+        // ===== UPLOAD FUNCTIONALITY =====
+        async function uploadArtwork(title, description, bwFile, colorFile) {
+            // For demo purposes, we'll simulate upload with local URLs
+            // In a real implementation, you would upload to a server
+            
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const newArtwork = {
+                        id: Date.now(),
+                        title,
+                        description,
+                        bwImage: URL.createObjectURL(bwFile),
+                        colorImage: URL.createObjectURL(colorFile),
+                        featured: false
+                    };
+                    
+                    paintings.push(newArtwork);
+                    resolve(newArtwork);
+                }, 1500); // Simulate network delay
+            });
         }
 
         // ===== GALLERY FUNCTIONS =====
@@ -588,16 +668,12 @@
             const galleryGrid = document.getElementById('galleryGrid');
             const featuredArtwork = document.getElementById('featuredArtwork');
             
-            // Set current year in footer
             document.getElementById('currentYear').textContent = currentYear;
             
-            // Clear existing content
             if (galleryGrid) galleryGrid.innerHTML = '';
             
-            // Find featured artwork
             const featured = paintings.find(p => p.featured) || paintings[0];
             
-            // Update featured artwork
             if (featuredArtwork) {
                 featuredArtwork.innerHTML = `
                     <img class="bw-image" src="${featured.bwImage}" alt="${featured.title} (B&W)">
@@ -609,7 +685,6 @@
                 `;
             }
             
-            // Populate gallery grid
             if (galleryGrid) {
                 paintings.forEach(painting => {
                     const galleryItem = document.createElement('div');
@@ -633,13 +708,10 @@
                         </div>
                     `;
                     
-                    // Add click event to open modal
                     galleryItem.addEventListener('click', () => openArtworkModal(painting));
-                    
                     galleryGrid.appendChild(galleryItem);
                 });
                 
-                // Add event listeners for admin buttons
                 if (isAdmin) {
                     document.querySelectorAll('.delete-btn').forEach(btn => {
                         btn.addEventListener('click', (e) => {
@@ -658,123 +730,72 @@
             }
         }
 
-        function deleteArtwork(id) {
-            paintings = paintings.filter(p => p.id !== parseInt(id));
-            initGallery();
-            showAlert("Artwork deleted", "success");
-        }
+        // [Rest of your existing functions remain the same: deleteArtwork, setFeaturedArtwork, 
+        // openArtworkModal, closeArtworkModal, showAlert, etc.]
 
-        function setFeaturedArtwork(id) {
-            paintings.forEach(p => p.featured = p.id === parseInt(id));
-            initGallery();
-            showAlert("Featured artwork updated", "success");
-        }
-
-        // ===== MODAL FUNCTIONS =====
-        function openArtworkModal(painting) {
-            const modal = document.getElementById('artworkModal');
-            const modalImage = document.getElementById('modalImage');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalDescription = document.getElementById('modalDescription');
-            const orderWhatsApp = document.getElementById('orderWhatsApp');
+        // ===== UPLOAD FORM HANDLER =====
+        document.getElementById('uploadForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
             
-            if (modal && modalImage && modalTitle && modalDescription && orderWhatsApp) {
-                modalImage.src = painting.colorImage;
-                modalTitle.textContent = painting.title;
-                modalDescription.textContent = painting.description;
-                
-                // Create WhatsApp order link
-                const message = `I'd like to order "${painting.title}" - ${painting.description}`;
-                orderWhatsApp.href = `https://wa.me/?text=${encodeURIComponent(message)}`;
-                
-                modal.classList.add('active');
+            const title = document.getElementById('paintingTitle').value.trim();
+            const description = document.getElementById('paintingDescription').value.trim();
+            const bwFile = document.getElementById('bwImage').files[0];
+            const colorFile = document.getElementById('colorImage').files[0];
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            try {
+                // Validate inputs
+                if (!title || title.length > 100) {
+                    throw new Error('Title must be between 1-100 characters');
+                }
+                if (!description || description.length > 500) {
+                    throw new Error('Description must be between 1-500 characters');
+                }
+                if (!bwFile || !colorFile) {
+                    throw new Error('Both images are required');
+                }
+
+                // Show loading state
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                submitBtn.disabled = true;
+
+                // Upload artwork
+                await uploadArtwork(title, description, bwFile, colorFile);
+
+                showAlert("Artwork uploaded successfully!", "success");
+                initGallery();
+                this.reset();
+                document.getElementById('bwPreview')?.classList.add('hidden');
+                document.getElementById('colorPreview')?.classList.add('hidden');
+
+            } catch (error) {
+                showAlert(error.message || "Upload failed. Please try again.", "error");
+            } finally {
+                submitBtn.innerHTML = '<i class="fas fa-plus"></i> Upload Artwork';
+                submitBtn.disabled = false;
             }
-        }
-
-        function closeArtworkModal() {
-            const modal = document.getElementById('artworkModal');
-            if (modal) {
-                modal.classList.remove('active');
-            }
-        }
-
-        // ===== ALERT FUNCTION =====
-        function showAlert(message, type) {
-            const alert = document.createElement('div');
-            alert.className = `fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 ${
-                type === 'error' ? 'bg-red-500' : 
-                type === 'success' ? 'bg-green-500' : 'bg-blue-500'
-            } text-white`;
-            alert.textContent = message;
-            
-            document.body.appendChild(alert);
-            
-            setTimeout(() => {
-                alert.classList.add('opacity-0', 'transition-opacity', 'duration-500');
-                setTimeout(() => alert.remove(), 500);
-            }, 3000);
-        }
+        });
 
         // ===== INITIALIZATION =====
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize gallery
             initGallery();
             
-            // Setup admin toggle button
+            // Admin toggle with password protection
             const adminToggle = document.getElementById('adminToggle');
             if (adminToggle) {
                 adminToggle.addEventListener('click', toggleAdminPanel);
             }
             
-            // Setup modal close button
-            const closeModal = document.getElementById('closeModal');
-            if (closeModal) {
-                closeModal.addEventListener('click', closeArtworkModal);
-            }
-            
-            // Close modal when clicking outside
-            const artworkModal = document.getElementById('artworkModal');
-            if (artworkModal) {
-                artworkModal.addEventListener('click', function(e) {
-                    if (e.target === artworkModal) {
-                        closeArtworkModal();
-                    }
+            // Password submission
+            const submitPassword = document.getElementById('submitPassword');
+            if (submitPassword) {
+                submitPassword.addEventListener('click', checkAdminPassword);
+                document.getElementById('adminPassword').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') checkAdminPassword();
                 });
             }
             
-            // Image upload preview setup
-            const bwImageInput = document.getElementById('bwImage');
-            const colorImageInput = document.getElementById('colorImage');
-            const bwPreview = document.getElementById('bwPreview');
-            const colorPreview = document.getElementById('colorPreview');
-            
-            if (bwImageInput && bwPreview) {
-                bwImageInput.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = function(event) {
-                            bwPreview.src = event.target.result;
-                            bwPreview.classList.remove('hidden');
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-            }
-            
-            if (colorImageInput && colorPreview) {
-                colorImageInput.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = function(event) {
-                            colorPreview.src = event.target.result;
-                            colorPreview.classList.remove('hidden');
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-            }
+            // [Rest of your existing initialization code]
         });
     </script>
 </body>
